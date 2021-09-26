@@ -1,0 +1,10 @@
+AUX_SOURCE_DIRECTORY(./ TRANSFERDEVICE_SRC_LIS)
+#FILE(GLOB_RECURSE SRC_LIST "*.cpp")
+
+IF(CMAKE_BUILD_TYPE MATCHES "release")
+add_library(libtransferdevice ${TRANSFERDEVICE_SRC_LIS})
+target_link_libraries(libtransferdevice libcom)
+ELSE()
+add_library(libtransferdeviced ${TRANSFERDEVICE_SRC_LIS})
+target_link_libraries(libtransferdeviced libcomd)
+ENDIF()

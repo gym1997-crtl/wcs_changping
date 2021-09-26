@@ -1,0 +1,6 @@
+add_subdirectory(comm)
+add_subdirectory(transferdevice)
+add_subdirectory(ADODatabase)
+add_subdirectory(Manage)
+add_subdirectory(Core)
+add_subdirectory(Common)

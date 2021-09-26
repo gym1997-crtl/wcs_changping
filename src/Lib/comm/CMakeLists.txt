@@ -1,0 +1,10 @@
+AUX_SOURCE_DIRECTORY(./ COM_SRC_LIS)
+#FILE(GLOB_RECURSE SRC_LIST "*.cpp")
+
+IF(CMAKE_BUILD_TYPE MATCHES "release")
+add_library(libcom ${COM_SRC_LIS})
+target_link_libraries(libcom)
+ELSE()
+add_library(libcomd ${COM_SRC_LIS})
+target_link_libraries(libcomd)
+ENDIF()
