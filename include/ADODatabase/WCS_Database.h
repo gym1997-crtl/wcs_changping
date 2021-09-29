@@ -157,6 +157,8 @@ public:
 	//小保当盘点接口
 	bool changeAgvMode(std::string equip_mode);
 	bool agvBackSignal(int agv_id, std::string mode);
+	//判断出入库的任务终点是否为货位（用于判断任务是出库还是入库）
+	bool CheckTargetIsStorage(std::string target);
 private:
 	std::vector<int>WCS_TASK_ID_;
 	std::vector<std::string>storage_up_list;

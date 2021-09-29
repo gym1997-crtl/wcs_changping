@@ -2261,3 +2261,35 @@ bool WCS_Database::readAreaInfo(std::map<int, std::vector<Pos_Info>> *all_area) 
 	}
 	return result;
 }
+
+//判断出入库的任务终点是否为货位（用于判断任务是出库还是入库）
+bool WCS_Database::CheckTargetIsStorage(std::string target)
+{
+	try {
+		int row_count = 0;
+		std::stringstream ss;
+		
+		ss << "SELECT COUNT(*) FROM s_equip_station_status WHERE storage_name = '" << target << "'";
+		_bstr_t SQL = ss.str().c_str();
+		recordPtr_ = WCS_ADO_.GetRecordSet(SQL);
+
+		if (recordPtr_)
+		{
+			row_count = (int)recordPtr_->GetCollect("COUNT(*)");
+		}
+		if (row_count != 0)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	catch (_com_error &e) {
+		std::stringstream ss;
+		ss << e.ErrorMessage() << "CheckTargetIsStorage" << e.Description();
+		log_info_color(log_color::red, "CheckTargetIsStorage expcetion happened in %s %s %d", __FILE__, __FUNCTION__, __LINE__);
+		return false;
+	}
+}

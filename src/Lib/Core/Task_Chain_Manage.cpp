@@ -227,13 +227,13 @@ void Task_Chain_Manage::Task_Status_Check_Event()
 				ORDER_MANAGE.releaseParkingStation(current_agv->AGV_In_Station_);
 				current_task->Set_Status(TASK_CHAIN_STATUS::PARKING);
 			}
-			else if (Current_Sub_Task->task_mode_ == "GOODS")
+			else if (Current_Sub_Task->task_mode_ == "IN")
 			{
-				current_task->Set_Status(EQUIP_GET_CONFIRM);//前往输送线取满轮的确认点
+				current_task->Set_Status(GOODS_IN_GET_CONFIRM);//前往输送线取满轮的确认点
 			}
-			else if (Current_Sub_Task->task_mode_ == "TRAY")
+			else if (Current_Sub_Task->task_mode_ == "OUT")
 			{
-				current_task->Set_Status(BUFFER_GET);//前往缓存区取空轮
+				current_task->Set_Status(GOODS_OUT_GET);//前往缓存区取空轮
 			}
 
 			it++;

@@ -18,6 +18,10 @@
 /// Creator:MeiXu
 /// CreateDate:2021/2/19
 /// 
+
+
+std::map<std::string, int> ApiClient::reponse_result = {};
+;
 ApiClient::ApiClient(QObject *parent) {
 	// 默认前往 -1
 	API_SERVER.InitialLauncher(-1, &this->UnknownOperation);
@@ -28,6 +32,9 @@ ApiClient::ApiClient(QObject *parent) {
 	API_SERVER.InitialLauncher("TASK_PRIORITY_CHANGE", &this->UpdatePriority);
 	API_SERVER.InitialLauncher("PALLET_PICK_DROP_TASK", &this->QueryAGVInfo);
 	API_SERVER.InitialLauncher("REQUEST_ DEVICE_INFO", &this->QueryAGVInfo);
+	//自测任务完成接口调用
+	API_SERVER.InitialLauncher("FORKLIFT_ACTION_COMPLETE", &this->TaskFinishReportTest);
+	
 }
 
 /// <summary>
@@ -167,13 +174,32 @@ bool ApiClient::QueryAGVInfo(ApiMsg * msg)
 	return result;
 }
 
+
+
+//自测
+bool ApiClient::TaskFinishReportTest(ApiMsg * msg)
+{
+	bool result = false;
+	// 处理请求
+	std::string order_id = msg->ReadString(msg->taskContent, "taskNo");
+	std::string priority = msg->ReadString(msg->taskContent, "priority");
+	result = true;
+	QJsonObject b;
+	b.insert("code","demo111");
+	b.insert("message", "1111111111111111111111111111111111111");
+	// 响应消息
+	msg->generateReturnBody(result, DatabaseError, VNAME(DatabaseError),&b);
+	return result;
+}
+
+
 bool ApiClient::UpdatePriority(ApiMsg * msg)
 {
 	bool result = false;
 	// 处理请求
 	std::string order_id = msg->ReadString(msg->taskContent, "taskNo");
 	std::string priority = msg->ReadString(msg->taskContent, "priority");
-	result = ORDER_MANAGE.Update_Priority(order_id,priority);
+	result = ORDER_MANAGE.Update_Priority(order_id, priority);
 	// 响应消息
 	msg->generateReturnBody(result, DatabaseError, VNAME(DatabaseError));
 	return result;
@@ -206,7 +232,26 @@ bool ApiClient::EquipmentStatusChangeNotification(std::string agvId, std::string
 
 
 //任务汇报完成
-bool ApiClient::TaskFinishReport(std::string taskNo,std::string deviceNo, std::string containerNo, std::string point,std::string actionType ) {
+bool ApiClient::TaskFinishReport(std::string taskNo,std::string deviceNo, std::string containerNo, std::string point,std::string actionType)
+{
+	//判断是否为第一次调用
+	if (reponse_result.find(taskNo + "TaskFinishReport") == reponse_result.end())
+	{
+		reponse_result.insert(std::map<std::string, int>::value_type(taskNo + "TaskFinishReport", 0));
+	}
+	std::map<std::string, int>::iterator itor = reponse_result.find(taskNo + "TaskFinishReport");
+	//已经收到回复
+	if (2 == itor->second)
+	{
+		std::cout << "已经收到回复" << endl;
+		return true;
+	}
+	//已经收到回复
+	if (1 == itor->second)
+	{
+		return false;
+	}
+	
 	// 组装消息
 	QJsonObject json_data;
 	json_data.insert("taskNo", QJsonValue(QString::fromStdString(taskNo)));
@@ -216,9 +261,13 @@ bool ApiClient::TaskFinishReport(std::string taskNo,std::string deviceNo, std::s
 	json_data.insert("actionType", QJsonValue(QString::fromStdString(actionType)));
 	QJsonObject body_data;
 	body_data.insert("taskJson", json_data);
+	body_data.insert("bizType", QJsonValue("FORKLIFT_ACTION_COMPLETE"));
+	body_data.insert("operatorName", QJsonValue(""));
+	body_data.insert("callCode", QJsonValue(""));
 
 	// 发送请求并声明响应函数
-	API_SERVER.send("127.0.0.1:625/", applicationsoapxml, body_data, &this->reply);
+	API_SERVER.send("127.0.0.1:625/", applicationjson, body_data, &this->reply);
+	reponse_result[taskNo + "TaskFinishReport"] = 1;
 	return true;
 }
 
@@ -248,6 +297,9 @@ bool ApiClient::QueryIsCanGetOrPut(std::string taskNo, std::string point, std::s
 	json_data.insert("flag", QJsonValue(QString::fromStdString(flag)));
 	QJsonObject body_data;
 	body_data.insert("taskJson", json_data);
+	body_data.insert("bizType", QJsonValue("FORKLIFT_ACTION_COMPLETE"));
+	body_data.insert("operatorName", QJsonValue(""));
+	body_data.insert("callCode", QJsonValue(""));
 
 	// 发送请求并声明响应函数
 	API_SERVER.send("127.0.0.1:625/", applicationsoapxml, body_data, &this->ReplyQueryIsCanGetOrPut);
@@ -258,6 +310,22 @@ bool ApiClient::QueryIsCanGetOrPut(std::string taskNo, std::string point, std::s
 //上报AGV状态
 bool ApiClient::DeviceInfoReport(std::string deviceNo, std::string errorCode, std::string  message, std::string deviceType, int workMode)
 {
+	std::map<std::string, int>::iterator itor = reponse_result.find(deviceNo + "DeviceInfoReport");
+	//已经收到回复
+	if (2 == itor->second)
+	{
+		return true;
+	}
+	//已经收到回复
+	if (1 == itor->second)
+	{
+		return false;
+	}
+	//判断是否为第一次调用
+	if (itor == reponse_result.end())
+	{
+		reponse_result.insert(std::map<std::string, int>::value_type(deviceNo + "DeviceInfoReport", 0));
+	}
 	// 组装消息
 	QJsonObject json_data;
 	json_data.insert("deviceNo", QJsonValue(QString::fromStdString(deviceNo)));
@@ -267,9 +335,13 @@ bool ApiClient::DeviceInfoReport(std::string deviceNo, std::string errorCode, st
 	json_data.insert("workMode", QJsonValue(QString::number(workMode)));
 	QJsonObject body_data;
 	body_data.insert("taskJson", json_data);
+	body_data.insert("bizType", QJsonValue("FORKLIFT_ACTION_COMPLETE"));
+	body_data.insert("operatorName", QJsonValue(""));
+	body_data.insert("callCode", QJsonValue(""));
 
 	// 发送请求并声明响应函数
 	API_SERVER.send("127.0.0.1:625/", applicationsoapxml, body_data, &this->reply);
+	reponse_result[deviceNo + "DeviceInfoReport"] = 1;
 	return true;
 }
 
@@ -280,7 +352,7 @@ bool ApiClient::reply(QJsonObject response, QJsonObject body) {
 	
 	return true;
 }
-
+//等待上位系统的回复
 bool ApiClient::ReplyQueryIsCanGetOrPut(QJsonObject response, QJsonObject body) {
 
 	ApiMsg::ReadBool(response, "valid");

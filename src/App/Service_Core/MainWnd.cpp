@@ -572,32 +572,35 @@ void MainWindow::closeEvent(QCloseEvent * event)
 // 创建任务
 void MainWindow::createOrder(bool flag)
 {
-	if (!storageList.contains(combobox_start->currentText()) )
-	{// 如果输入的 出发点 不存在
-		combobox_start->setEditText(storageList.at(0));
-		combobox_start->setFocus();
-	}
-	else if (!storageList.contains(combobox_target->currentText()) )
-	{// 如果输入的 目的地 不存在
-		combobox_target->setEditText(storageList.at(0));
-		combobox_target->setFocus();
-	}
-	else
-	{
-		QString GUID = QUuid::createUuid().toString();
-		GUID.remove("{").remove("}").remove("-"); // 一般习惯去掉左右花括号和连字符
+	//模拟调用API接口
+	API_CLIENT.TaskFinishReport("orderId","-1","123","1","2");
 
-		// 创建从 start 到 target 的 mode 类型命令
-		std::string START = combobox_start->currentText().toStdString();
-		//std::string TARGET = combobox_target->currentText().toStdString();
-		std::string TARGET = "HP-01";
-		int PRIORITY = 1;
-		std::string STATUS = "NEW";
-		std::string MODE = combobox_mode_->currentText().toStdString();
-		std::string TYPE = "CARRY";
-		STORAGE_MANAGE.Insert_Order(GUID.toStdString(), START, TARGET, PRIORITY, STATUS, MODE, TYPE);
-		//RABBITMQ_SERVICE.ReportAgvAction("1", 1, 1, "1", 1);
-	}
+	//if (!storageList.contains(combobox_start->currentText()) )
+	//{// 如果输入的 出发点 不存在
+	//	combobox_start->setEditText(storageList.at(0));
+	//	combobox_start->setFocus();
+	//}
+	//else if (!storageList.contains(combobox_target->currentText()) )
+	//{// 如果输入的 目的地 不存在
+	//	combobox_target->setEditText(storageList.at(0));
+	//	combobox_target->setFocus();
+	//}
+	//else
+	//{
+	//	QString GUID = QUuid::createUuid().toString();
+	//	GUID.remove("{").remove("}").remove("-"); // 一般习惯去掉左右花括号和连字符
+
+	//	// 创建从 start 到 target 的 mode 类型命令
+	//	std::string START = combobox_start->currentText().toStdString();
+	//	//std::string TARGET = combobox_target->currentText().toStdString();
+	//	std::string TARGET = "HP-01";
+	//	int PRIORITY = 1;
+	//	std::string STATUS = "NEW";
+	//	std::string MODE = combobox_mode_->currentText().toStdString();
+	//	std::string TYPE = "CARRY";
+	//	STORAGE_MANAGE.Insert_Order(GUID.toStdString(), START, TARGET, PRIORITY, STATUS, MODE, TYPE);
+	//	//RABBITMQ_SERVICE.ReportAgvAction("1", 1, 1, "1", 1);
+	//}
 }
 
 void MainWindow::revokeOrder( bool flag)

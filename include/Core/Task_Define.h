@@ -71,8 +71,8 @@ typedef enum {
 	LANDMARK_BEGIN_TASK = 1050,
 	WEIGHTING_TASK = 1056,                  //称重任务
 	LANDMARK_STOP_TASK = 1051,
-	FAKE_DIRECT_FORWARD_GET = 1120          //虚拟取货任务
-
+	FAKE_DIRECT_FORWARD_GET = 1120,          //虚拟取货任务
+	FORWARD_BACKWARD_PUT=1003 //正向行驶后倒车入库
 
 
 }SUB_TASK_TYPE;
@@ -115,6 +115,23 @@ typedef enum {
 	EQUIP_GET_CONFIRM_CHECK,
 	BEGIN_CHECK,
 	PARKING_CHECK,
+
+	/*北京昌平项目状态*/
+	GOODS_IN_GET_CONFIRM,//入库起始状态
+	GOODS_IN_GET_CONFIRM_CHECK, //AGV入库行驶到取货点
+	GOODS_IN_GET,//倒车取货
+	GOODS_IN_GET_CHECK, //取货完成
+	GOODS_IN_PUT, //去放货
+	GOODS_IN_PUT_CHECK, //放货完成
+
+	GOODS_OUT_GET,        //出库起始状态
+	GOODS_OUT_GET_CHECK,   //移动到指定地点
+	GOODS_OUT_PUT_CONFIRM,    //移动到放货确认点
+	GOODS_OUT_PUT_CONFIRM_CHECK, //到达指定地点
+	GOODS_OUT_PUT,  //去放货
+	GOODS_OUT_PUT_CHECK, //放货完成
+
+
 	OVER,
 	ABORT,
 	ERR

@@ -176,6 +176,9 @@ private:
 
 	void splitString2(const std::string& s, std::vector<std::string>& v, const std::string& c);
 
+	//判断出入库的任务终点是否为货位（用于判断任务是出库还是入库）
+	bool TargetIsGoodsIn0rGoodsOutStation(const std::string target);
+
 	float battery_high_range_;
 
 	float battery_low_range_;

@@ -65,6 +65,9 @@ private:
 
 	static bool UpdatePriority(ApiMsg*);
 
+	//自测接口
+	static bool TaskFinishReportTest(ApiMsg*);
+
 	static bool UnknownOperation(ApiMsg*);
 
 	static bool reply(QJsonObject, QJsonObject);

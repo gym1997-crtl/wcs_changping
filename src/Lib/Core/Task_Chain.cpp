@@ -36,13 +36,15 @@ TASK_CHAIN_STATUS Task_Chain::Task_Chain_Initial(int index, std::string order_id
 	setType(type);
 	setPalletno(palletno);
 
-	if (mode == "TRAY")
+	if (TargetIsGoodsIn0rGoodsOutStation(target))
 	{
+		setMode("OUT");
 		setTrayPut(start);
 		return createTrayStorageTaskChain();
 	}
-	else if (mode == "GOODS")
+	else 
 	{
+		setMode("IN");
 		setGoodsGet(start);
 		return createGoodsStorageTaskChain();
 	}
@@ -95,51 +97,6 @@ TASK_CHAIN_STATUS Task_Chain::Charging_Initial(int index, AGV* associate_AGV)
 	return  createChargingTaskChain();
 }
 
-TASK_CHAIN_STATUS Task_Chain::createMoveStorageTaskChain()    //业务流程
-{
-	Task_Type_ = TASK_CHAIN_TYPE::CARRY_TASK;
-
-	if (Associate_AGV_->Is_Charging_ == CHARGING_STATUS::CHANRING_CHARGING && Associate_AGV_->Battery_Level_ > battery_low_range_)
-	{
-		Associate_AGV_->Is_Charging_ = CHARGING_STATUS::CHARGING_PAUSE;
-		AGV_MANAGE.stopCharging(Associate_AGV_);
-		stopChargingLog();
-		return BLOCKED;
-	}
-	if (Associate_AGV_->Is_Charging_ == CHARGING_STATUS::CHANRING_CHARGING && Associate_AGV_->Battery_Level_ <= battery_low_range_)
-	{
-		AGV_MANAGE.Set_Lock(Associate_AGV_->AGV_ID_);
-		AGV_MANAGE.setBusy(Associate_AGV_->AGV_ID_);
-		return BLOCKED;
-	}
-	else if (Associate_AGV_->Is_Charging_ == CHARGING_STATUS::CHANRING_STOP)
-	{
-		/*取放货相关流程*/
-
-		// 1-1. 前往缓存区取一个空轮; 
-		Create_Sub_Task("NA", "NA", 1, Associate_AGV_->AGV_Type_, DIRECT_FORWARD_GET, 0, Associate_AGV_->ID_, "BUFFER_GET", "MOVE", BUFFER_GET, BUFFER_GET_CHECK);
-
-		// 1-2. 前往输送线放空轮确认点; 
-		Create_Sub_Task("NA", getStart() + "-P-W", 1, Associate_AGV_->AGV_Type_, FORWARD_BACKWARD, 0, Associate_AGV_->ID_, "EQUIP_PUT", "MOVE", EQUIP_PUT, EQUIP_PUT_CHECK);
-
-		// 1-2. 前往输送线放空轮; 
-		Create_Sub_Task("NA", getStart() + "-P", 1, Associate_AGV_->AGV_Type_, BACKWARD_PUT, 0, Associate_AGV_->ID_, "EQUIP_PUT", "MOVE", EQUIP_PUT, EQUIP_PUT_CHECK);
-
-		// 1-2. 前往输送线取满轮; 
-		Create_Sub_Task("NA", getStart() + "-G", 1, Associate_AGV_->AGV_Type_, DIRECT_FORWARD_GET, 0, Associate_AGV_->ID_, "EQUIP_GET", "MOVE", EQUIP_GET, EQUIP_GET_CHECK);
-
-		// 1-4. 前往缓存区放一个满轮; 
-		Create_Sub_Task("NA", "NA", 1, Associate_AGV_->AGV_Type_, DIRECT_FORWARD_PUT, 0, Associate_AGV_->ID_, "BUFFER_PUT", "MOVE", BUFFER_PUT, BUFFER_PUT_CHECK);
-
-		std::stringstream ss;
-		ss << Associate_AGV_->AGV_ID_ << ":Begin createInStorageTaskChain";
-		log_info(ss.str().c_str());
-
-		Set_Status(TASK_CHAIN_STATUS::BEGIN);
-		Set_Start_Time();
-		return TASK_CHAIN_STATUS::BEGIN;
-	}
-}
 
 TASK_CHAIN_STATUS Task_Chain::createTrayStorageTaskChain()    //业务流程
 {
@@ -162,17 +119,14 @@ TASK_CHAIN_STATUS Task_Chain::createTrayStorageTaskChain()    //业务流程
 	{
 		/*取放货相关流程*/
 
-		// 1-1. 前往缓存区取一个空轮; 
-		Create_Sub_Task("NA", "NA", 1, Associate_AGV_->AGV_Type_, DIRECT_FORWARD_GET, 0, Associate_AGV_->ID_, "BUFFER_GET", "TRAY", BUFFER_GET, BUFFER_GET_CHECK);
+		// 1-1. 从起点前往取货点的确认点
+		Create_Sub_Task("NA", getStart() + "-Confirm", 1, Associate_AGV_->AGV_Type_, FORWARD_BACKWARD, 0, Associate_AGV_->ID_, "GOODS_IN_GET_CONFIRM", "IN", GOODS_IN_GET_CONFIRM, GOODS_IN_GET_CONFIRM_CHECK);
 
 		// 1-2. 前往输送线放空轮确认点; 
-		Create_Sub_Task("NA", getStart() + "-P-W", 1, Associate_AGV_->AGV_Type_, FORWARD_BACKWARD, 0, Associate_AGV_->ID_, "EQUIP_PUT_CONFIRM", "TRAY", EQUIP_PUT_CONFIRM, EQUIP_PUT_CONFIRM_CHECK);
+		Create_Sub_Task("NA", getStart() , 1, Associate_AGV_->AGV_Type_,BACKWARD_GET , 0, Associate_AGV_->ID_, "GOODS_IN_GET", "IN", GOODS_IN_GET, GOODS_IN_GET_CHECK);
 
 		// 1-3. 前往输送线放空轮; 
-		Create_Sub_Task("NA", getStart() + "-P", 1, Associate_AGV_->AGV_Type_, BACKWARD_PUT, 0, Associate_AGV_->ID_, "EQUIP_PUT", "TRAY", EQUIP_PUT, EQUIP_PUT_CHECK);
-
-		// 1-4. 退出输送线放空轮确认点; 
-		Create_Sub_Task("NA", getStart() + "-P-W", 1, Associate_AGV_->AGV_Type_, DIRECT_FORWARD_PATH, 0, Associate_AGV_->ID_, "EQUIP_PUT_RELEASE", "TRAY", EQUIP_PUT_RELEASE, EQUIP_PUT_RELEASE_CHECK);
+		Create_Sub_Task("NA", getTargeted(), 1, Associate_AGV_->AGV_Type_, DIRECT_FORWARD_PUT, 0, Associate_AGV_->ID_, "GOODS_IN_PUT", "IN", GOODS_IN_PUT, GOODS_IN_PUT_CHECK);
 
 
 		std::stringstream ss;
@@ -204,14 +158,16 @@ TASK_CHAIN_STATUS Task_Chain::createGoodsStorageTaskChain()    //业务流程
 	}
 	else if (Associate_AGV_->Is_Charging_ == CHARGING_STATUS::CHANRING_STOP)
 	{
-		// 1-2. 前往输送线放空轮确认点; 
-		Create_Sub_Task("NA", getStart() + "-G-W", 1, Associate_AGV_->AGV_Type_, FORWARD_BACKWARD, 0, Associate_AGV_->ID_, "EQUIP_GET_CONFIRM", "GOODS", EQUIP_GET_CONFIRM, EQUIP_GET_CONFIRM_CHECK);
+		/*取放货相关流程*/
 
-		// 1-2. 前往输送线取满轮; 
-		Create_Sub_Task("NA", getStart() + "-G", 1, Associate_AGV_->AGV_Type_, BACKWARD_GET, 0, Associate_AGV_->ID_, "EQUIP_GET", "GOODS", EQUIP_GET, EQUIP_GET_CHECK);
+		// 1-1. 从起点前往取货点
+		Create_Sub_Task("NA", getStart(), 1, Associate_AGV_->AGV_Type_, DIRECT_FORWARD_GET, 0, Associate_AGV_->ID_, "GOODS_OUT_GET", "OUT", GOODS_OUT_GET, GOODS_OUT_GET_CHECK);
 
-		// 1-4. 前往缓存区放一个满轮; 
-		Create_Sub_Task("NA", "NA", 1, Associate_AGV_->AGV_Type_, DIRECT_FORWARD_PUT, 0, Associate_AGV_->ID_, "BUFFER_PUT", "GOODS", BUFFER_PUT, BUFFER_PUT_CHECK);
+		// 1-2. 前往放货确认点; 
+		Create_Sub_Task("NA", getTargeted()+"-Confirm", 1, Associate_AGV_->AGV_Type_, FORWARD_BACKWARD, 0, Associate_AGV_->ID_, "GOODS_OUT_PUT_CONFIRM", "OUT", GOODS_OUT_PUT_CONFIRM, GOODS_OUT_PUT_CONFIRM_CHECK);
+
+		// 1-3. 前往倒车放货; 
+		Create_Sub_Task("NA", getTargeted(), 1, Associate_AGV_->AGV_Type_, BACKWARD_PUT, 0, Associate_AGV_->ID_, "GOODS_OUT_PUT", "OUT", GOODS_OUT_PUT, GOODS_OUT_PUT_CHECK);
 
 		std::stringstream ss;
 		ss << Associate_AGV_->AGV_ID_ << ":Begin createGoodsStorageTaskChain";
@@ -645,4 +601,15 @@ void Task_Chain::splitString2(const std::string& s, std::vector<std::string>& v,
 	}
 	if (pos1 != s.length())
 		v.push_back(s.substr(pos1));
+}
+
+//判断出入库的任务终点是否为出入库点（用于判断任务是出库还是入库） true:出库 false:入库
+bool Task_Chain::TargetIsGoodsIn0rGoodsOutStation(const std::string target)
+{
+	//查询数据库中“s_equip_station_status”表,判断目标点是否为出入库点
+	if (WCS_DB_->CheckTargetIsStorage(target)) 
+	{
+		return true;
+	}
+	return false;
 }
